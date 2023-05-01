@@ -6,12 +6,14 @@ Desenvolvendo um controle remoto.
 
 ### Integrantes
 
-- Nome1
-- Nome2
+- Marcos Vinícius da Silva
+- Luiz Felipe Lazzaron
 
 ### Ideia
 
 <!--  Descreva aqui em poucas palavras qual a ideia do seu controle. Se ele vai ser de jogo ou de aplicação -->
+
+Este projeto tem como objetivo realizar um protótipo de um controle bluetooth com 4 botões e um analógico para jogar Tekken 3 no emulador do PsOne.
 
 ### Nome
 
