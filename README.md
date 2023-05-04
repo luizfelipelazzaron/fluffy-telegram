@@ -27,6 +27,8 @@ Este projeto tem como objetivo realizar um protótipo de um controle bluetooth c
 
 <!-- Qual software que seu controle vai controlar? -->
 
+Tekken 3 (emulado no PsOne)
+
 ### Jornada do usuários (3 pts)
 
 <!-- Descreva ao menos duas jornadas de usuários distintos, é para caprichar! -->
