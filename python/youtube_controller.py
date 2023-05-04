@@ -6,7 +6,7 @@ import logging
 
 class MyControllerMap:
     def __init__(self):
-        self.button = {'A': 'L','B': 'K','C': 'J','D': 'H'} # Fast forward (10 seg) pro Youtube
+        self.button = {'A': 'L','B': 'K','C': 'J','D': 'H','E':'S','F':'W', 'G':'A','H':'D'} # Fast forward (10 seg) pro Youtube
 
 class SerialControllerInterface:
     # Protocolo
@@ -70,6 +70,47 @@ class SerialControllerInterface:
             logging.info("KEYUP D")
             pyautogui.keyUp(self.mapping.button['D'])
 
+        #Analófico: DOWN / UP/ BOTTOM
+        elif data == b'D':
+            print("databD")
+            logging.info("KEYDOWN E")
+            pyautogui.keyDown(self.mapping.button['E'])
+            logging.info("KEYUP F")
+            pyautogui.keyUp(self.mapping.button['F'])
+        elif data == b'U':
+            print("databU")
+            logging.info("KEYDOWN F")
+            pyautogui.keyDown(self.mapping.button['F'])
+            logging.info("KEYUP E")
+            pyautogui.keyUp(self.mapping.button['E'])
+        elif data == b'B':
+            print("databB")
+            logging.info("KEYUP E")
+            pyautogui.keyUp(self.mapping.button['E'])
+            logging.info("KEYUP F")
+            pyautogui.keyUp(self.mapping.button['F'])
+
+        #Analófico: DOWN / UP/ BOTTOM
+        elif data == b'L':
+            print("databL")
+            logging.info("KEYDOWN G")
+            pyautogui.keyDown(self.mapping.button['G'])
+            logging.info("KEYUP H")
+            pyautogui.keyUp(self.mapping.button['H'])
+        elif data == b'R':
+            print("databR")
+            logging.info("KEYDOWN H")
+            pyautogui.keyDown(self.mapping.button['H'])
+            logging.info("KEYUP G")
+            pyautogui.keyUp(self.mapping.button['G'])
+        elif data == b'C':
+            print("databC")
+            logging.info("KEYUP G")
+            pyautogui.keyUp(self.mapping.button['G'])
+            logging.info("KEYUP H")
+            pyautogui.keyUp(self.mapping.button['H'])
+        self.incoming = self.ser.read()
+
         self.incoming = self.ser.read()
 
 class DummyControllerInterface:
@@ -81,6 +122,8 @@ class DummyControllerInterface:
         pyautogui.keyDown(self.mapping.button['B'])
         pyautogui.keyDown(self.mapping.button['C'])
         pyautogui.keyDown(self.mapping.button['D'])
+        pyautogui.keyDown(self.mapping.button['D'])
+        pyautogui.keyDown(self.mapping.button['D'])
 
         time.sleep(0.1)
 
@@ -88,11 +131,15 @@ class DummyControllerInterface:
         pyautogui.keyUp(self.mapping.button['B'])
         pyautogui.keyUp(self.mapping.button['C'])
         pyautogui.keyUp(self.mapping.button['D'])
+        pyautogui.keyUp(self.mapping.button['E'])
+        pyautogui.keyUp(self.mapping.button['F'])
 
         logging.info("[Dummy] Pressed A button")
         logging.info("[Dummy] Pressed B button")
         logging.info("[Dummy] Pressed C button")
         logging.info("[Dummy] Pressed D button")
+        logging.info("[Dummy] Pressed E button")
+        logging.info("[Dummy] Pressed F button")
 
         time.sleep(1)
 
