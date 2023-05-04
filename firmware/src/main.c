@@ -47,7 +47,7 @@
 // Descomente pa
 // pela serial debug
 
-#define DEBUG_SERIAL //comente para ativar o bluetooth na placa; não esqueça de mudar de 115200->960 0
+//#define DEBUG_SERIAL //comente para ativar o bluetooth na placa; não esqueça de mudar de 115200->960 0
 
 #ifdef DEBUG_SERIAL
 #define USART_COM USART1
@@ -64,9 +64,9 @@
 #define AFEC_POT_ID_Y ID_AFEC0
 #define AFEC_POT_CHANNEL_Y 0 // Canal do pino PD30
 
-#define AFEC_POT_X AFEC0
-#define AFEC_POT_ID_X ID_AFEC0
-#define AFEC_POT_CHANNEL_X 5 // Canal do pino PB2
+#define AFEC_POT_X AFEC1
+#define AFEC_POT_ID_X ID_AFEC1
+#define AFEC_POT_CHANNEL_X 1 // Canal do pino PC13
 
 /************************************************************************/
 /* QUEUES AFEC                                                          */
@@ -107,7 +107,8 @@ extern void xPortSysTickHandler(void);
 /* local prototypes                                                     */
 /************************************************************************/
 
-static void config_AFEC_pot(void);
+static void config_AFEC_pot(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
+afec_callback_t callback);
 
 void AFEC_pot_Y_callback(void);
 void AFEC_pot_X_callback(void);
@@ -163,21 +164,19 @@ void AFEC_pot_Y_callback(void) {
 	
 	if (afecValue > 3000) {
 		data.value = 'U'; //UP +
-		
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		data.value = 'B'; // BOTTON
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+
 	} else if (afecValue < 1000){
 		data.value = 'D'; // DOWN -
-		
-	} else {
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
 		data.value = 'B'; // BOTTON
-	}
-	
-	if (data.value == 'B'){
-		if (oldData.value != 'C' && oldData.value != 'B'){
-			xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
-		}
-	} else {
 		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
 	}
+	
 }
 
 void AFEC_pot_X_callback(void) {
@@ -188,20 +187,17 @@ void AFEC_pot_X_callback(void) {
 	int afecValue = (int)  afec_channel_get_value(AFEC_POT_X, AFEC_POT_CHANNEL_X);
 	
 	if (afecValue > 3000) {
-		data.value = 'L'; //LEFT +
-		
+		data.value = 'L'; //UP +
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		data.value = 'C'; // BOTTON
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+
 		} else if (afecValue < 1000){
-		data.value = 'R'; // LEFT -
-		
-		} else {
-		data.value = 'C'; // CENTER
-	}
-	
-	if (data.value == 'C'){
-		if (oldData.value != 'B' && oldData.value != 'C'){
-			xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
-		}
-		} else {
+		data.value = 'R'; // DOWN -
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
+		data.value = 'C'; // BOTTON
 		xQueueSendFromISR(xQueueMain, &data, &xHigherPriorityTaskWoken);
 	}
 }
@@ -273,7 +269,7 @@ void TC0_Handler(void){
 
 	/* Avoid compiler warning */
 	UNUSED(ul_dummy);
-	
+
 	afec_channel_enable(AFEC_POT_Y, AFEC_POT_CHANNEL_Y);
 	afec_start_software_conversion(AFEC_POT_Y);
 	
@@ -368,10 +364,14 @@ static void configure_console(void) {
 	#endif
 }
 
-static void config_AFEC_pot(void) {
-	
-	afec_enable(AFEC0);
-  
+static void config_AFEC_pot(Afec *afec, uint32_t afec_id, uint32_t afec_channel,
+                            afec_callback_t callback) {
+  /*************************************
+   * Ativa e configura AFEC
+   *************************************/
+  /* Ativa AFEC - 0 */
+  afec_enable(afec);
+
   /* struct de configuracao do AFEC */
   struct afec_config afec_cfg;
 
@@ -379,35 +379,36 @@ static void config_AFEC_pot(void) {
   afec_get_config_defaults(&afec_cfg);
 
   /* Configura AFEC */
-  afec_init(AFEC_POT_Y, &afec_cfg);
-  afec_init(AFEC_POT_X, &afec_cfg);
+  afec_init(afec, &afec_cfg);
+
+  /* Configura trigger por software */
+  afec_set_trigger(afec, AFEC_TRIG_SW);
 
   /*** Configuracao específica do canal AFEC ***/
   struct afec_ch_config afec_ch_cfg;
   afec_ch_get_config_defaults(&afec_ch_cfg);
   afec_ch_cfg.gain = AFEC_GAINVALUE_0;
-  
-  afec_ch_set_config(AFEC_POT_Y, AFEC_POT_CHANNEL_Y, &afec_ch_cfg);
-  afec_ch_set_config(AFEC_POT_X, AFEC_POT_CHANNEL_X, &afec_ch_cfg);
-  
+  afec_ch_set_config(afec, afec_channel, &afec_ch_cfg);
+
   /*
   * Calibracao:
   * Because the internal ADC offset is 0x200, it should cancel it and shift
   down to 0.
   */
-  afec_channel_set_analog_offset(AFEC_POT_Y, AFEC_POT_CHANNEL_Y, 0x200);
-  afec_channel_set_analog_offset(AFEC_POT_X, AFEC_POT_CHANNEL_X, 0x200);
-  
- 
-   afec_set_callback(AFEC_POT_Y, AFEC_POT_CHANNEL_Y, AFEC_pot_Y_callback, 1);
-   afec_set_callback(AFEC_POT_X, AFEC_POT_CHANNEL_X, AFEC_pot_X_callback, 1);
-   
-   NVIC_SetPriority(AFEC_POT_ID_Y, 4);
-   NVIC_EnableIRQ(AFEC_POT_ID_Y);
-   
-	NVIC_SetPriority(AFEC_POT_ID_X, 4);
-	NVIC_EnableIRQ(AFEC_POT_ID_X);
+  afec_channel_set_analog_offset(afec, afec_channel, 0x200);
+
+  /***  Configura sensor de temperatura ***/
+  struct afec_temp_sensor_config afec_temp_sensor_cfg;
+
+  afec_temp_sensor_get_config_defaults(&afec_temp_sensor_cfg);
+  afec_temp_sensor_set_config(afec, &afec_temp_sensor_cfg);
+
+  /* configura IRQ */
+  afec_set_callback(afec, afec_channel, callback, 1);
+  NVIC_SetPriority(afec_id, 4);
+  NVIC_EnableIRQ(afec_id);
 }
+
 
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
 	uint32_t ul_div;
@@ -528,9 +529,11 @@ void task_bluetooth(void) {
 	hc05_init();
 	io_init();
 	
-	config_AFEC_pot();
-	
-	TC_init(TC0, ID_TC0, 0, 3);
+
+	config_AFEC_pot(AFEC_POT_Y,AFEC_POT_ID_Y,AFEC_POT_CHANNEL_Y,AFEC_pot_Y_callback);
+	config_AFEC_pot(AFEC_POT_X,AFEC_POT_ID_X,AFEC_POT_CHANNEL_X,AFEC_pot_X_callback);
+
+	TC_init(TC0, ID_TC0, 0, 100);
 	tc_start(TC0, 0);
 
    
@@ -542,18 +545,21 @@ void task_bluetooth(void) {
 					while(!usart_is_tx_ready(USART_COM)) {
 						vTaskDelay(10 / portTICK_PERIOD_MS);
 					}
+					
 					usart_write(USART_COM, data.value);
+					
 					
 					while(!usart_is_tx_ready(USART_COM)) {
 						vTaskDelay(10 / portTICK_PERIOD_MS);
 					}
+					
 					usart_write(USART_COM, eof);
 					
 					oldData.value = data.value;
 		} 
 		
 		// dorme por 500 ms
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		vTaskDelay(2 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -568,7 +574,7 @@ int main(void) {
 	board_init();
 	configure_console();
 	
-	xQueueMain = xQueueCreate(100, sizeof(Data));
+	xQueueMain = xQueueCreate(10, sizeof(Data));
 	
 	if (xQueueMain == NULL){
 		printf("xQueueMain failure\n");
